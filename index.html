@@ -62,20 +62,9 @@
 
 <div class="form-container">
   <h2>Nieuw Filiaal Registreren</h2>
-  <form id="filiaalForm">
-    <label for="verantwoordelijke">Naam verantwoordelijke</label>
-    <select id="verantwoordelijke" required>
-      <option value="" disabled selected>Kies verantwoordelijke</option>
-      <option>Martijn Hoeks</option>
-      <option>Tim Van Helvoort</option>
-      <option>Merlijn Stieger</option>
-      <option>Gidi De Kort</option>
-      <option>Maud Moolenschot</option>
-      <option>Laurens Eggersman</option>
-      <option>Justin Overbeek</option>
-      <option>Jorrit Zwaanswijk</option>
-    </select>
 
+  <form id="filiaalForm">  <!-- ✅ toegevoegd -->
+  
     <label for="typeFiliaal">Type filiaal *</label>
 <select id="typeFiliaal" name="typeFiliaal" required>
   <option value="" disabled selected>Kies een optie...</option>
@@ -85,81 +74,129 @@
 </select>
 
 
-    <label for="bedrijf">Naam bedrijf</label>
-    <input type="text" id="bedrijf">
+<label for="bedrijf">Naam bedrijf *</label>
+<input type="text" id="bedrijf" name="bedrijf" required>
 
-    <button type="submit">Versturen</button>
-  </form>
+<label for="straatnaam">Straatnaam incl. huisnummer *</label>
+<input type="text" id="straatnaam" name="straatnaam" required>
 
-  <div id="popup" class="popup">
-    Bedankt! Het filiaal ID is: <strong id="generatedId"></strong>
-  </div>
+<label for="postcode">Postcode *</label>
+<input type="text" id="postcode" name="postcode" required>
+
+<label for="plaats">Plaats *</label>
+<input type="text" id="plaats" name="plaats" required>
+
+    <label for="provincie">Provincie *</label>
+<select id="provincie" name="provincie" required>
+  <option value="" disabled selected>Kies een provincie...</option>
+
+  <!-- Nederland -->
+  <optgroup label="Nederland">
+    <option value="Drenthe">Drenthe</option>
+    <option value="Flevoland">Flevoland</option>
+    <option value="Friesland">Friesland</option>
+    <option value="Gelderland">Gelderland</option>
+    <option value="Groningen">Groningen</option>
+    <option value="Limburg">Limburg</option>
+    <option value="Noord-Brabant">Noord-Brabant</option>
+    <option value="Noord-Holland">Noord-Holland</option>
+    <option value="Overijssel">Overijssel</option>
+    <option value="Utrecht">Utrecht</option>
+    <option value="Zeeland">Zeeland</option>
+    <option value="Zuid-Holland">Zuid-Holland</option>
+  </optgroup>
+
+  <!-- België -->
+  <optgroup label="België">
+    <option value="België">België</option>
+  </optgroup>
+</select>
+
+
+<button type="submit">Versturen</button>
+</form> <!-- ✅ sluit het formulier hier af -->
+
+<div id="popup" class="popup">
+  Bedankt! Het filiaal ID is: <strong id="generatedId"></strong>
+</div>
+
 </div>
 <script>
-  const form = document.getElementById('filiaalForm');
-  const popup = document.getElementById('popup');
-  const generatedIdEl = document.getElementById('generatedId');
-  const submitButton = form.querySelector('button[type="submit"]');
-  const endpoint = 'https://tesst-d51c.onrender.com/api/handle-filiaal';
+  (function () {
+    const form = document.getElementById('filiaalForm');
+    const popup = document.getElementById('popup');
+    const generatedIdEl = document.getElementById('generatedId');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const endpoint = 'https://tesst-d51c.onrender.com/api/handle-filiaal';
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    submitButton.disabled = true;
-    submitButton.textContent = 'Versturen...';
+      submitButton.disabled = true;
+      submitButton.textContent = 'Versturen...';
 
-    const verantwoordelijke = document.getElementById('verantwoordelijke').value.trim();
-    const bedrijf = document.getElementById('bedrijf').value.trim();
-    const typeFiliaal = document.getElementById('typeFiliaal').value.trim();
+      // Form waarden ophalen
+      const bedrijf = document.getElementById('bedrijf').value.trim();
+      const typeFiliaal = document.getElementById('typeFiliaal').value.trim();
+      const straatnaam = document.getElementById('straatnaam').value.trim();
+      const postcode = document.getElementById('postcode').value.trim();
+      const plaats = document.getElementById('plaats').value.trim();
+      const provincie = document.getElementById('provincie').value.trim();
 
-    // Client-side checks voor betere UX
-    if (!verantwoordelijke) {
-      alert('Kies een verantwoordelijke.');
-      submitButton.disabled = false; submitButton.textContent = 'Versturen';
-      return;
-    }
-    if (!bedrijf) {
-      alert('Vul een bedrijfsnaam in.');
-      submitButton.disabled = false; submitButton.textContent = 'Versturen';
-      return;
-    }
-    if (!typeFiliaal) {
-      alert('Kies een type filiaal.');
-      submitButton.disabled = false; submitButton.textContent = 'Versturen';
-      return;
-    }
+      // Basis checks (UX)
+      if (!bedrijf)    return fail('Vul een bedrijfsnaam in.');
+      if (!typeFiliaal) return fail('Kies een type filiaal.');
+      if (!straatnaam) return fail('Vul straat + huisnummer in.');
+      if (!postcode)   return fail('Vul een postcode in.');
+      if (!plaats)     return fail('Vul een plaats in.');
+      if (!provincie)  return fail('Kies een provincie.');
 
-    // Server genereert nu zelf het ID → geen id meesturen
-    const payload = { bedrijf, verantwoordelijke, typeFiliaal };
+      // Payload naar server
+      const payload = {
+        bedrijf,
+        typeFiliaal,
+        straatnaam,
+        postcode,
+        plaats,
+        provincie
+      };
 
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-      const data = await res.json().catch(() => ({}));
+        const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        // Toon het ID dat de server heeft toegekend
-        generatedIdEl.textContent = data.assignedId ?? '—';
-        popup.style.display = 'block';
-        form.reset();
-      } else {
-        let msg = data?.error || 'Er is iets misgegaan bij het opslaan.';
-        if (data?.received) msg += `\nOntvangen: ${JSON.stringify(data.received)}`;
-        alert(msg);
+        if (res.ok) {
+          generatedIdEl.textContent = data.assignedId ?? '—';
+          popup.style.display = 'block';
+          form.reset();
+        } else {
+          let msg = data?.error || 'Er is iets misgegaan bij het opslaan.';
+          if (data?.received) msg += `\nOntvangen: ${JSON.stringify(data.received)}`;
+          alert(msg);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Server niet bereikbaar.');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Versturen';
       }
-    } catch (err) {
-      console.error(err);
-      alert('Server niet bereikbaar.');
-    } finally {
+    });
+
+    function fail(message) {
+      alert(message);
       submitButton.disabled = false;
       submitButton.textContent = 'Versturen';
     }
-  });
+  })();
 </script>
+
+
 
 </body>
 </html>
