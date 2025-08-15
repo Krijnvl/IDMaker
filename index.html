@@ -76,6 +76,15 @@
       <option>Jorrit Zwaanswijk</option>
     </select>
 
+    <label for="typeFiliaal">Type filiaal *</label>
+<select id="typeFiliaal" name="typeFiliaal" required>
+  <option value="" disabled selected>Kies een optie...</option>
+  <option value="Overig Filiaal">Overig Filiaal</option>
+  <option value="Sportclub">Sportclub</option>
+  <option value="Slijterij">Slijterij</option>
+</select>
+
+
     <label for="bedrijf">Naam bedrijf</label>
     <input type="text" id="bedrijf">
 
@@ -86,58 +95,66 @@
     Bedankt! Het filiaal ID is: <strong id="generatedId"></strong>
   </div>
 </div>
-
 <script>
   const form = document.getElementById('filiaalForm');
   const popup = document.getElementById('popup');
   const generatedIdEl = document.getElementById('generatedId');
   const submitButton = form.querySelector('button[type="submit"]');
-
-  function generateID() {
-    return 'GD_' + Math.random().toString(36).substr(2, 10);
-  }
+  const endpoint = 'https://tesst-d51c.onrender.com/api/handle-filiaal';
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Disable button
     submitButton.disabled = true;
     submitButton.textContent = 'Versturen...';
 
-    const verantwoordelijke = document.getElementById('verantwoordelijke').value;
-    const bedrijf = document.getElementById('bedrijf').value;
-    const filiaalId = generateID();
+    const verantwoordelijke = document.getElementById('verantwoordelijke').value.trim();
+    const bedrijf = document.getElementById('bedrijf').value.trim();
+    const typeFiliaal = document.getElementById('typeFiliaal').value.trim();
 
-    const endpoint = 'https://tesst-d51c.onrender.com/api/handle-filiaal';
+    // Client-side checks voor betere UX
+    if (!verantwoordelijke) {
+      alert('Kies een verantwoordelijke.');
+      submitButton.disabled = false; submitButton.textContent = 'Versturen';
+      return;
+    }
+    if (!bedrijf) {
+      alert('Vul een bedrijfsnaam in.');
+      submitButton.disabled = false; submitButton.textContent = 'Versturen';
+      return;
+    }
+    if (!typeFiliaal) {
+      alert('Kies een type filiaal.');
+      submitButton.disabled = false; submitButton.textContent = 'Versturen';
+      return;
+    }
 
-
-    const payload = {
-      id: filiaalId,
-      bedrijf: bedrijf,
-      verantwoordelijke: verantwoordelijke
-    };
+    // Server genereert nu zelf het ID → geen id meesturen
+    const payload = { bedrijf, verantwoordelijke, typeFiliaal };
 
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
-        generatedIdEl.textContent = filiaalId;
+        // Toon het ID dat de server heeft toegekend
+        generatedIdEl.textContent = data.assignedId ?? '—';
         popup.style.display = 'block';
         form.reset();
       } else {
-        alert("Er is iets misgegaan bij het opslaan.");
-        submitButton.disabled = false;
-        submitButton.textContent = 'Versturen';
+        let msg = data?.error || 'Er is iets misgegaan bij het opslaan.';
+        if (data?.received) msg += `\nOntvangen: ${JSON.stringify(data.received)}`;
+        alert(msg);
       }
     } catch (err) {
       console.error(err);
-      alert("Server niet bereikbaar.");
+      alert('Server niet bereikbaar.');
+    } finally {
       submitButton.disabled = false;
       submitButton.textContent = 'Versturen';
     }
